@@ -5,6 +5,7 @@ from .serializers import AuthorSerializer, BookSerializer, MemberSerializer, Loa
 from rest_framework.decorators import action
 from django.utils import timezone
 from .tasks import send_loan_notification
+from datetime import datetime
 
 class AuthorViewSet(viewsets.ModelViewSet):
     queryset = Author.objects.all()
@@ -52,3 +53,16 @@ class MemberViewSet(viewsets.ModelViewSet):
 class LoanViewSet(viewsets.ModelViewSet):
     queryset = Loan.objects.all()
     serializer_class = LoanSerializer
+    
+    @action(detail=True, methods=['post'])
+    def extend_due_date(self, request, pk=None):
+        loan_instance = self.get_object()
+
+        try:
+            loan = Loan.objects.get(id=loan_instance.id)
+        except Loan.DoesNotExist:
+            pass
+        new_due_date = datetime.strptime(self.request.data.get('new_return_date'), "%Y-%m-%d")
+        loan.due_date = new_due_date
+        loan.save()
+        return Response({'status': f'Loan Due date extended to {new_due_date}.'}, status=status.HTTP_200_OK)
